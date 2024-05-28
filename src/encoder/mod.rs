@@ -25,6 +25,6 @@ pub fn encode(input: &[u8]) -> String {
         output.push(ALPHABET[((input[index + 1] & 0xf) << 2) as usize]);
     }
 
-    // ALPHABET does not contain invalit utf8 chars
+    // ALPHABET does not contain invalid utf8 chars
     unsafe { String::from_utf8_unchecked(output) }
 }

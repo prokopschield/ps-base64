@@ -21,8 +21,24 @@ pub fn decode_base64_block(input: &[u8]) -> [u8; 3] {
     ]
 }
 
+#[inline]
+const fn align_up(size: usize) -> usize {
+    let remainder = size % 4;
+
+    if remainder != 0 {
+        size + 4 - remainder
+    } else {
+        size
+    }
+}
+
+#[inline]
+const fn three_fourths(size: usize) -> usize {
+    align_up(size) * 3 / 4
+}
+
 pub fn decode(input: &[u8]) -> Vec<u8> {
-    let mut output: Vec<u8> = Vec::with_capacity(input.len() * 3 / 4 + 1);
+    let mut output: Vec<u8> = Vec::with_capacity(three_fourths(input.len()));
 
     for chunk in input.chunks(4) {
         output.extend(decode_base64_block(chunk).iter());

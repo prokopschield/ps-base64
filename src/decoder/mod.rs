@@ -2,6 +2,7 @@ pub mod map;
 
 pub use map::*;
 
+#[allow(clippy::identity_op)]
 pub fn decode_base64_block(input: &[u8]) -> [u8; 3] {
     let mut value: u32 = 0;
 

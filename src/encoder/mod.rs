@@ -2,7 +2,7 @@ pub const ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrst
 
 #[inline(always)]
 pub fn sized_encode<const S: usize>(input: &[u8]) -> [u8; S] {
-    let mut output: [u8; S] = unsafe { std::mem::MaybeUninit::uninit().assume_init() };
+    let mut output = [b'='; S];
     let mut index = 0;
 
     let mut push = |byte: u8| {
@@ -34,9 +34,7 @@ pub fn sized_encode<const S: usize>(input: &[u8]) -> [u8; S] {
         push(ALPHABET[((input[index + 1] & 0xf) << 2) as usize]);
     }
 
-    output[index..S].fill(b'=');
-
-    return output;
+    output
 }
 
 pub fn encode(input: &[u8]) -> String {

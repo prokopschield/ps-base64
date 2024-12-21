@@ -1,6 +1,6 @@
 [package]
 name = "ps-base64"
-version = "0.1.0-2"
+version = "0.1.0-3"
 description = "Base64 encode/decode"
 license = "GPL-3.0-or-later"
 edition = "2021"

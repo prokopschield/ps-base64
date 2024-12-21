@@ -45,5 +45,5 @@ pub fn decode(input: &[u8]) -> Vec<u8> {
         output.extend(decode_base64_block(chunk).iter());
     }
 
-    return output;
+    output
 }

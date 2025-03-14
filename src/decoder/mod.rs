@@ -3,12 +3,13 @@ pub mod map;
 pub use map::*;
 
 #[allow(clippy::identity_op)]
+#[must_use]
 pub fn decode_base64_block(input: &[u8]) -> [u8; 3] {
     let mut value: u32 = 0;
 
     for index in 0..input.len() {
         value <<= 6;
-        value += DECODE_MAP[input[index] as usize] as u32;
+        value += u32::from(DECODE_MAP[input[index] as usize]);
     }
 
     for _ in input.len()..4 {
@@ -16,9 +17,9 @@ pub fn decode_base64_block(input: &[u8]) -> [u8; 3] {
     }
 
     [
-        (value >> 0x10) as u8,
-        (value >> 0x08) as u8,
-        (value >> 0x00) as u8,
+        ((value >> 0x10) & 0xFF) as u8,
+        ((value >> 0x08) & 0xFF) as u8,
+        ((value >> 0x00) & 0xFF) as u8,
     ]
 }
 
@@ -38,6 +39,7 @@ const fn three_fourths(size: usize) -> usize {
     align_up(size) * 3 / 4
 }
 
+#[must_use]
 pub fn decode(input: &[u8]) -> Vec<u8> {
     let mut output: Vec<u8> = Vec::with_capacity(three_fourths(input.len()));
 

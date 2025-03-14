@@ -1,6 +1,7 @@
 pub const ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789~_";
 
-#[inline(always)]
+#[inline]
+#[must_use]
 pub fn sized_encode<const S: usize>(input: &[u8]) -> [u8; S] {
     let mut output = [b'='; S];
     let mut index = 0;
@@ -37,6 +38,7 @@ pub fn sized_encode<const S: usize>(input: &[u8]) -> [u8; S] {
     output
 }
 
+#[must_use]
 pub fn encode(input: &[u8]) -> String {
     let mut output = Vec::with_capacity(input.len() * 4 / 3 + 1);
 

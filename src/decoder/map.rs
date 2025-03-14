@@ -1,3 +1,4 @@
+#[must_use]
 pub const fn decode_base64_char(char: u8) -> u8 {
     if char >= b'0' && char <= b'9' {
         char - b'0' + 52
@@ -16,6 +17,8 @@ pub const fn decode_base64_char(char: u8) -> u8 {
     }
 }
 
+#[allow(clippy::too_many_lines)]
+#[must_use]
 pub const fn create_decode_map() -> [u8; 256] {
     let mut map = [0u8; 256];
 

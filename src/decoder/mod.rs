@@ -2,49 +2,71 @@ pub mod map;
 
 pub use map::*;
 
-#[allow(clippy::identity_op)]
-#[must_use]
-pub fn decode_base64_block(input: &[u8]) -> [u8; 3] {
-    let mut value: u32 = 0;
-
-    for index in 0..input.len() {
-        value <<= 6;
-        value += u32::from(DECODE_MAP[input[index] as usize]);
-    }
-
-    for _ in input.len()..4 {
-        value <<= 6;
-    }
-
-    [
-        ((value >> 0x10) & 0xFF) as u8,
-        ((value >> 0x08) & 0xFF) as u8,
-        ((value >> 0x00) & 0xFF) as u8,
-    ]
+#[inline]
+pub(crate) const fn align_up(size: usize) -> usize {
+    (size + 3) & !3
 }
 
 #[inline]
-const fn align_up(size: usize) -> usize {
-    let remainder = size % 4;
-
-    if remainder != 0 {
-        size + 4 - remainder
-    } else {
-        size
-    }
-}
-
-#[inline]
-const fn three_fourths(size: usize) -> usize {
-    align_up(size) * 3 / 4
+pub(crate) const fn three_fourths(size: usize) -> usize {
+    (size * 3).div_ceil(4)
 }
 
 #[must_use]
 pub fn decode(input: &[u8]) -> Vec<u8> {
-    let mut output: Vec<u8> = Vec::with_capacity(three_fourths(input.len()));
+    let mut output: Vec<u8> = Vec::with_capacity(align_up(three_fourths(input.len())));
 
-    for chunk in input.chunks(4) {
-        output.extend(decode_base64_block(chunk).iter());
+    let mut iterator = input
+        .iter()
+        .copied()
+        .filter(|&byte| !byte.is_ascii_whitespace() && byte != b'=');
+
+    loop {
+        let mut value = 0;
+
+        if let Some(b) = iterator.next() {
+            value |= u32::from(DECODE_MAP[usize::from(b)]) << 18;
+        } else {
+            break;
+        }
+
+        if let Some(b) = iterator.next() {
+            value |= u32::from(DECODE_MAP[usize::from(b)]) << 12;
+        } else {
+            output.push(value.to_be_bytes()[1]);
+            break;
+        }
+
+        if let Some(b) = iterator.next() {
+            value |= u32::from(DECODE_MAP[usize::from(b)]) << 6;
+        } else {
+            let bytes = value.to_be_bytes();
+
+            output.push(bytes[1]);
+
+            if bytes[2] != 0 {
+                output.push(bytes[2]);
+            }
+
+            break;
+        }
+
+        if let Some(b) = iterator.next() {
+            value |= u32::from(DECODE_MAP[usize::from(b)]);
+        } else {
+            let bytes = value.to_be_bytes();
+
+            output.push(bytes[1]);
+            output.push(bytes[2]);
+
+            if bytes[3] != 0 {
+                output.push(bytes[3]);
+            }
+
+            break;
+        }
+
+        output.extend_from_slice(&value.to_be_bytes()[1..]);
     }
 
     output

@@ -3,6 +3,9 @@
 pub mod decoder;
 pub mod encoder;
 
+#[cfg(test)]
+mod tests;
+
 pub use decoder::*;
 pub use encoder::*;
 

@@ -134,3 +134,126 @@ fn test_decode_large_input() {
     let decoded_bytes = decode(encoded_string.as_bytes());
     assert_bytes_eq(input_string.as_bytes(), &decoded_bytes);
 }
+
+#[test]
+fn test_sized_decode_empty() {
+    assert_bytes_eq(b"", &sized_decode::<0>(b""));
+    assert_bytes_eq(b"\0", &sized_decode::<1>(b""));
+    assert_bytes_eq(b"\0\0", &sized_decode::<2>(b""));
+    assert_bytes_eq(b"\0\0\0", &sized_decode::<3>(b""));
+}
+
+#[test]
+fn test_sized_decode_basic() {
+    assert_bytes_eq(b"", &sized_decode::<0>(b"Zg=="));
+    assert_bytes_eq(b"f", &sized_decode::<1>(b"Zg=="));
+    assert_bytes_eq(b"f", &sized_decode::<1>(b"Zm8="));
+    assert_bytes_eq(b"fo", &sized_decode::<2>(b"Zm8="));
+    assert_bytes_eq(b"fo", &sized_decode::<2>(b"Zm9v"));
+    assert_bytes_eq(b"foo", &sized_decode::<3>(b"Zm9v"));
+    assert_bytes_eq(b"foo", &sized_decode::<3>(b"Zm9vYg=="));
+    assert_bytes_eq(b"foob", &sized_decode::<4>(b"Zm9vYg=="));
+    assert_bytes_eq(b"foob", &sized_decode::<4>(b"Zm9vYmE="));
+    assert_bytes_eq(b"fooba", &sized_decode::<5>(b"Zm9vYmE="));
+    assert_bytes_eq(b"fooba", &sized_decode::<5>(b"Zm9vYmFy"));
+    assert_bytes_eq(b"foobar", &sized_decode::<6>(b"Zm9vYmFy"));
+}
+
+#[test]
+fn test_sized_decode_padding() {
+    assert_bytes_eq(b"", &sized_decode::<0>(b"Zg=="));
+    assert_bytes_eq(b"f", &sized_decode::<1>(b"Zg=="));
+    assert_bytes_eq(b"f", &sized_decode::<1>(b"Zm8="));
+    assert_bytes_eq(b"fo", &sized_decode::<2>(b"Zm8="));
+}
+
+#[test]
+fn test_sized_decode_multi_block() {
+    assert_bytes_eq(b"", &sized_decode::<0>(b"YWJjZGVm"));
+    assert_bytes_eq(b"a", &sized_decode::<1>(b"YWJjZGVm"));
+    assert_bytes_eq(b"ab", &sized_decode::<2>(b"YWJjZGVm"));
+    assert_bytes_eq(b"abc", &sized_decode::<3>(b"YWJjZGVm"));
+    assert_bytes_eq(b"abcd", &sized_decode::<4>(b"YWJjZGVm"));
+    assert_bytes_eq(b"abcde", &sized_decode::<5>(b"YWJjZGVm"));
+    assert_bytes_eq(b"abcdef", &sized_decode::<6>(b"YWJjZGVm"));
+    assert_bytes_eq(b"abcdef", &sized_decode::<6>(b"YWJjZGVmZ2g="));
+    assert_bytes_eq(b"abcdefg", &sized_decode::<7>(b"YWJjZGVmZ2h="));
+    assert_bytes_eq(b"abcdefgh", &sized_decode::<8>(b"YWJjZGVmZ2h="));
+    assert_bytes_eq(b"abcdefgh", &sized_decode::<8>(b"YWJjZGVmZ2hp"));
+    assert_bytes_eq(b"abcdefghi", &sized_decode::<9>(b"YWJjZGVmZ2hp"));
+}
+
+fn as_vec<const S: usize>(arr: [u8; S]) -> Vec<u8> {
+    arr.to_vec()
+}
+
+#[test]
+fn test_sized_decode_empty_input() {
+    let out: [u8; 0] = sized_decode(b"");
+    assert_eq!(out, []);
+}
+
+#[test]
+fn test_sized_decode_one_byte() {
+    let out: [u8; 1] = sized_decode(b"Zg==");
+    assert_eq!(as_vec(out), b"f");
+}
+
+#[test]
+fn test_sized_decode_two_bytes() {
+    let out: [u8; 2] = sized_decode(b"Zm8=");
+    assert_eq!(as_vec(out), b"fo");
+}
+
+#[test]
+fn test_sized_decode_three_bytes() {
+    let out: [u8; 3] = sized_decode(b"Zm9v");
+    assert_eq!(as_vec(out), b"foo");
+}
+
+#[test]
+fn test_sized_decode_four_bytes() {
+    let out: [u8; 4] = sized_decode(b"Zm9vYg==");
+    assert_eq!(as_vec(out), b"foob");
+}
+
+#[test]
+fn test_sized_decode_six_bytes() {
+    let out: [u8; 6] = sized_decode(b"Zm9vYmFy");
+    assert_eq!(as_vec(out), b"foobar");
+}
+
+#[test]
+fn test_sized_decode_with_whitespace() {
+    let input = b" Z m 9 v \n Y m F y  ";
+    let out: [u8; 6] = sized_decode(input);
+    assert_eq!(as_vec(out), b"foobar");
+}
+
+#[test]
+fn test_sized_decode_no_padding() {
+    let out: [u8; 8] = sized_decode(b"YWJjZGVmZ2g=");
+    assert_eq!(as_vec(out), b"abcdefgh");
+}
+
+#[test]
+fn test_sized_decode_truncated_output() {
+    let out: [u8; 3] = sized_decode(b"Zm9vYmFy");
+    assert_eq!(as_vec(out), b"foo");
+}
+
+#[test]
+fn test_sized_decode_larger_buffer() {
+    let out: [u8; 8] = sized_decode(b"Zm9vYmFy");
+    let mut expected = b"foobar".to_vec();
+    expected.extend_from_slice(&[0, 0]);
+    assert_eq!(as_vec(out), expected);
+}
+
+#[test]
+fn test_sized_decode_all_byte_values() {
+    let raw: Vec<u8> = (0u8..=255).collect();
+    let b64 = base64::encode(&raw);
+    let out: [u8; 256] = sized_decode(b64.as_bytes());
+    assert_eq!(as_vec(out), raw);
+}

@@ -40,7 +40,7 @@ pub fn sized_encode<const S: usize>(input: &[u8]) -> [u8; S] {
 
 #[must_use]
 pub fn encode(input: &[u8]) -> String {
-    let mut output = Vec::with_capacity(input.len() * 4 / 3 + 1);
+    let mut output = Vec::with_capacity((input.len() * 4).div_ceil(3));
 
     for chunk in input.chunks_exact(3) {
         output.push(ALPHABET[(chunk[0] >> 2) as usize]);
@@ -50,18 +50,15 @@ pub fn encode(input: &[u8]) -> String {
     }
 
     let remainder = input.len() % 3;
+    let len = input.len();
 
     if remainder == 1 {
-        let index: usize = input.len() - 1;
-
-        output.push(ALPHABET[(input[index] >> 2) as usize]);
-        output.push(ALPHABET[((input[index] & 3) << 4) as usize]);
+        output.push(ALPHABET[(input[len - 1] >> 2) as usize]);
+        output.push(ALPHABET[((input[len - 1] & 3) << 4) as usize]);
     } else if remainder == 2 {
-        let index: usize = input.len() - 2;
-
-        output.push(ALPHABET[(input[index] >> 2) as usize]);
-        output.push(ALPHABET[(((input[index] & 0x3) << 4) | (input[index + 1] >> 4)) as usize]);
-        output.push(ALPHABET[((input[index + 1] & 0xf) << 2) as usize]);
+        output.push(ALPHABET[(input[len - 2] >> 2) as usize]);
+        output.push(ALPHABET[(((input[len - 2] & 0x3) << 4) | (input[len - 1] >> 4)) as usize]);
+        output.push(ALPHABET[((input[len - 1] & 0xf) << 2) as usize]);
     }
 
     // ALPHABET does not contain invalid utf8 chars

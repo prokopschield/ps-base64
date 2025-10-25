@@ -67,3 +67,51 @@ pub fn encode(input: &[u8]) -> String {
     // ALPHABET does not contain invalid utf8 chars
     unsafe { String::from_utf8_unchecked(output) }
 }
+
+/// Encodes `input` and writes directly into a [`core::fmt::Write`].
+///
+/// # Errors
+///
+/// Errors are passed from [`core::fmt::Write::write_str`].
+#[inline]
+pub fn encode_into<W>(input: &[u8], mut sink: W) -> core::fmt::Result
+where
+    W: core::fmt::Write,
+{
+    let mut push = |s: &[u8]| sink.write_str(unsafe { str::from_utf8_unchecked(s) });
+
+    for chunk in input.chunks_exact(3) {
+        let a = ALPHABET[(chunk[0] >> 2) as usize];
+        let b = ALPHABET[(((chunk[0] & 0x3) << 4) | (chunk[1] >> 4)) as usize];
+        let c = ALPHABET[(((chunk[1] & 0xf) << 2) | (chunk[2] >> 6)) as usize];
+        let d = ALPHABET[(chunk[2] & 0x3f) as usize];
+
+        push(&[a, b, c, d])?;
+    }
+
+    match input.len() % 3 {
+        1 => {
+            let c = input[input.len() - 1];
+
+            push(&[
+                ALPHABET[(c >> 2) as usize],
+                ALPHABET[((c & 3) << 4) as usize],
+            ])?;
+        }
+        2 => {
+            let (a, b) = {
+                let len = input.len();
+                (input[len - 2], input[len - 1])
+            };
+
+            push(&[
+                ALPHABET[(a >> 2) as usize],
+                ALPHABET[(((a & 0x3) << 4) | (b >> 4)) as usize],
+                ALPHABET[((b & 0xf) << 2) as usize],
+            ])?;
+        }
+        _ => {}
+    }
+
+    Ok(())
+}

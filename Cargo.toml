@@ -3,7 +3,10 @@ name = "ps-base64"
 version = "0.1.0-6"
 edition = "2021"
 description = "Base64 encode/decode"
+repository = "https://github.com/prokopschield/ps-base64"
 license = "GPL-3.0-or-later"
+keywords = ["base64", "base64url", "decode", "encode"]
+categories = ["encoding"]
 
 [profile.dev]
 opt-level = 3

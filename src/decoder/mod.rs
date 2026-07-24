@@ -12,6 +12,11 @@ pub(crate) const fn three_fourths(size: usize) -> usize {
     (size * 3).div_ceil(4)
 }
 
+/// Decodes base64url `input` into a [`Vec<u8>`].
+///
+/// Decoding is lenient: ASCII whitespace and `=` are skipped, and every other
+/// byte is accepted (see [`decode_base64_char`]). Both the URL-safe (`-`, `_`)
+/// and standard (`+`, `/`) alphabets are recognized.
 #[must_use]
 pub fn decode(input: &[u8]) -> Vec<u8> {
     let mut output: Vec<u8> = Vec::with_capacity(align_up(three_fourths(input.len())));
@@ -72,6 +77,11 @@ pub fn decode(input: &[u8]) -> Vec<u8> {
     output
 }
 
+/// Decodes base64url `input` into a fixed-size `[u8; S]` buffer.
+///
+/// Decoding stops once `S` bytes are produced or the input is exhausted; any
+/// remaining input is ignored, and any unfilled trailing bytes are left zero.
+/// Leniency matches [`decode`].
 #[must_use]
 pub fn sized_decode<const S: usize>(input: &[u8]) -> [u8; S] {
     let mut output = [0u8; S];

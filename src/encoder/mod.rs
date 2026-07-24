@@ -1,5 +1,10 @@
+/// The base64url output alphabet, indexed by 6-bit value.
 pub const ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 
+/// Encodes `input` as base64url into a fixed-size `[u8; S]` buffer.
+///
+/// The buffer is right-padded with `=` when the encoding is shorter than `S`,
+/// and the encoding is silently truncated when it is longer than `S`.
 #[inline]
 #[must_use]
 pub fn sized_encode<const S: usize>(input: &[u8]) -> [u8; S] {
@@ -38,6 +43,10 @@ pub fn sized_encode<const S: usize>(input: &[u8]) -> [u8; S] {
     output
 }
 
+/// Encodes `input` as unpadded base64url and returns it as a [`String`].
+///
+/// The output uses the URL-safe alphabet (`-` and `_` for 62 and 63) and
+/// carries no `=` padding.
 #[must_use]
 pub fn encode(input: &[u8]) -> String {
     let mut output = Vec::with_capacity((input.len() * 4).div_ceil(3));

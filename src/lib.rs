@@ -1,3 +1,11 @@
+//! Ultra-optimized, highly lenient base64url encoding and decoding.
+//!
+//! Encoding produces unpadded [base64url] output. Decoding is lenient: it skips
+//! ASCII whitespace and `=`, accepts both the URL-safe and standard alphabets,
+//! and never fails.
+//!
+//! [base64url]: https://datatracker.ietf.org/doc/html/rfc4648#section-5
+
 #![allow(clippy::module_name_repetitions)]
 
 pub mod decoder;

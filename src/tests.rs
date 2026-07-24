@@ -257,3 +257,68 @@ fn test_sized_decode_all_byte_values() {
     let out: [u8; 256] = sized_decode(b64.as_bytes());
     assert_eq!(as_vec(out), raw);
 }
+
+#[test]
+fn test_encode_basic() {
+    // base64url, unpadded (RFC 4648 §5 vectors without '=' padding)
+    assert_eq!(encode(b""), "");
+    assert_eq!(encode(b"f"), "Zg");
+    assert_eq!(encode(b"fo"), "Zm8");
+    assert_eq!(encode(b"foo"), "Zm9v");
+    assert_eq!(encode(b"foob"), "Zm9vYg");
+    assert_eq!(encode(b"fooba"), "Zm9vYmE");
+    assert_eq!(encode(b"foobar"), "Zm9vYmFy");
+}
+
+#[test]
+fn test_encode_url_safe_alphabet() {
+    // Index 62 is '-', and index 63 is '_'.
+    assert_eq!(encode(&[0xf8, 0x00, 0x00]), "-AAA");
+    assert_eq!(encode(&[0xff, 0xff, 0xff]), "____");
+}
+
+#[test]
+fn test_encode_roundtrip() {
+    for len in 0u8..=64 {
+        let input: Vec<u8> = (0..len).collect();
+
+        assert_bytes_eq(&input, &decode(encode(&input).as_bytes()));
+    }
+}
+
+#[test]
+fn test_encode_into_matches_encode() -> core::fmt::Result {
+    for len in 0u8..=64 {
+        let input: Vec<u8> = (0..len).collect();
+
+        let mut sink = String::new();
+
+        encode_into(&input, &mut sink)?;
+
+        assert_eq!(sink, encode(&input));
+    }
+
+    Ok(())
+}
+
+#[test]
+fn test_sized_encode_exact() {
+    assert_bytes_eq(b"Zg", &sized_encode::<2>(b"f"));
+    assert_bytes_eq(b"Zm8", &sized_encode::<3>(b"fo"));
+    assert_bytes_eq(b"Zm9v", &sized_encode::<4>(b"foo"));
+    assert_bytes_eq(b"Zm9vYmFy", &sized_encode::<8>(b"foobar"));
+}
+
+#[test]
+fn test_sized_encode_pads_with_equals() {
+    // A buffer larger than the encoding is right-padded with '='.
+    assert_bytes_eq(b"Zg==", &sized_encode::<4>(b"f"));
+    assert_bytes_eq(b"Zm9v====", &sized_encode::<8>(b"foo"));
+}
+
+#[test]
+fn test_sized_encode_truncates() {
+    // A buffer smaller than the encoding silently truncates.
+    assert_bytes_eq(b"", &sized_encode::<0>(b"foobar"));
+    assert_bytes_eq(b"Zm", &sized_encode::<2>(b"foobar"));
+}

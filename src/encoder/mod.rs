@@ -52,10 +52,12 @@ pub fn encode(input: &[u8]) -> String {
     let mut output = Vec::with_capacity((input.len() * 4).div_ceil(3));
 
     for chunk in input.chunks_exact(3) {
-        output.push(ALPHABET[(chunk[0] >> 2) as usize]);
-        output.push(ALPHABET[(((chunk[0] & 0x3) << 4) | (chunk[1] >> 4)) as usize]);
-        output.push(ALPHABET[(((chunk[1] & 0xf) << 2) | (chunk[2] >> 6)) as usize]);
-        output.push(ALPHABET[(chunk[2] & 0x3f) as usize]);
+        output.extend_from_slice(&[
+            ALPHABET[(chunk[0] >> 2) as usize],
+            ALPHABET[(((chunk[0] & 0x3) << 4) | (chunk[1] >> 4)) as usize],
+            ALPHABET[(((chunk[1] & 0xf) << 2) | (chunk[2] >> 6)) as usize],
+            ALPHABET[(chunk[2] & 0x3f) as usize],
+        ]);
     }
 
     let remainder = input.len() % 3;

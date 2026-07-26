@@ -137,12 +137,37 @@ fn test_decode_non_canonical_tail() {
 }
 
 #[test]
+fn test_decode_stray_trailing_char() {
+    // Decoding is best-effort, so a lone trailing character is widened into a
+    // byte from its six bits rather than dropped. No encoder emits such a
+    // tail, since an encoding is never one character longer than a multiple
+    // of four.
+    assert_bytes_eq(&[100], &decode(b"Z"));
+    assert_bytes_eq(b"foo\0", &decode(b"Zm9vA"));
+    assert_bytes_eq(b"food", &decode(b"Zm9vZ"));
+}
+
+#[test]
 fn test_decode_length_is_data_independent() {
-    // Every two-character and three-character tail decodes to the same number
-    // of bytes, regardless of the padding bits it carries.
+    // Every trailing group decodes to the same number of bytes, regardless of
+    // the padding bits it carries.
     for &byte in ALPHABET {
+        assert_eq!(decode(&[byte]).len(), 1);
         assert_eq!(decode(&[b'Z', byte]).len(), 1);
         assert_eq!(decode(&[b'Z', b'm', byte]).len(), 2);
+    }
+}
+
+#[test]
+fn test_decode_length_depends_only_on_input_length() {
+    let encoded = encode(&pseudo_random_bytes(3_000));
+
+    for len in 0..=encoded.len() {
+        // A trailing group of one or two characters yields one byte, and a
+        // trailing group of three yields two.
+        let expected = len / 4 * 3 + [0, 1, 1, 2][len % 4];
+
+        assert_eq!(decode(&encoded.as_bytes()[..len]).len(), expected, "{len}");
     }
 }
 

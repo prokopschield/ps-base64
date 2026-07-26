@@ -17,6 +17,11 @@ pub(crate) const fn three_fourths(size: usize) -> usize {
 /// Decoding is lenient: ASCII whitespace and `=` are skipped, and every other
 /// byte is accepted (see [`decode_base64_char`]). Both the URL-safe (`-`, `_`)
 /// and standard (`+`, `/`) alphabets are recognized.
+///
+/// The output length depends only on the number of accepted characters, never
+/// on their values: every complete group of four characters yields three
+/// bytes, and a trailing group of one, two, or three characters yields one,
+/// one, or two bytes. Leftover bits in a trailing group are discarded.
 #[must_use]
 pub fn decode(input: &[u8]) -> Vec<u8> {
     let mut output: Vec<u8> = Vec::with_capacity(align_up(three_fourths(input.len())));
@@ -45,13 +50,7 @@ pub fn decode(input: &[u8]) -> Vec<u8> {
         if let Some(b) = iterator.next() {
             value |= u32::from(DECODE_MAP[usize::from(b)]) << 6;
         } else {
-            let bytes = value.to_be_bytes();
-
-            output.push(bytes[1]);
-
-            if bytes[2] != 0 {
-                output.push(bytes[2]);
-            }
+            output.push(value.to_be_bytes()[1]);
 
             break;
         }
@@ -63,10 +62,6 @@ pub fn decode(input: &[u8]) -> Vec<u8> {
 
             output.push(bytes[1]);
             output.push(bytes[2]);
-
-            if bytes[3] != 0 {
-                output.push(bytes[3]);
-            }
 
             break;
         }

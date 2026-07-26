@@ -126,6 +126,27 @@ fn test_decode_invalid_input_length() {
 }
 
 #[test]
+fn test_decode_non_canonical_tail() {
+    // Trailing bits that a canonical encoder would leave zero are discarded,
+    // so the output length matches that of the canonical encoding.
+    assert_bytes_eq(&[102], &decode(b"Zg"));
+    assert_bytes_eq(&[102], &decode(b"Zh"));
+
+    assert_bytes_eq(&[102, 108], &decode(b"Zmw"));
+    assert_bytes_eq(&[102, 107], &decode(b"Zmv"));
+}
+
+#[test]
+fn test_decode_length_is_data_independent() {
+    // Every two-character and three-character tail decodes to the same number
+    // of bytes, regardless of the padding bits it carries.
+    for &byte in ALPHABET {
+        assert_eq!(decode(&[b'Z', byte]).len(), 1);
+        assert_eq!(decode(&[b'Z', b'm', byte]).len(), 2);
+    }
+}
+
+#[test]
 fn test_decode_large_input() {
     // Create a large input string (1000 characters)
     let input_string =

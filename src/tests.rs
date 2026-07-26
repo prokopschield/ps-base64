@@ -343,3 +343,106 @@ fn test_sized_encode_truncates() {
     assert_bytes_eq(b"", &sized_encode::<0>(b"foobar"));
     assert_bytes_eq(b"Zm", &sized_encode::<2>(b"foobar"));
 }
+
+// Deterministic pseudo-random bytes (xorshift64). A plain counter only ever
+// exercises a narrow, highly regular set of byte values.
+fn pseudo_random_bytes(len: usize) -> Vec<u8> {
+    let mut state: u64 = 0x2545_f491_4f6c_dd1d;
+
+    (0..len)
+        .map(|_| {
+            state ^= state << 13;
+            state ^= state >> 7;
+            state ^= state << 17;
+
+            state.to_le_bytes()[0]
+        })
+        .collect()
+}
+
+// Length of the unpadded base64url encoding of `len` bytes.
+fn encoded_len(len: usize) -> usize {
+    len / 3 * 4
+        + match len % 3 {
+            0 => 0,
+            1 => 2,
+            _ => 3,
+        }
+}
+
+// Every input length from 0 to 256, which covers all three residues modulo 3
+// and every position within a four-character group, plus a few larger sizes.
+fn end_to_end_lengths() -> impl Iterator<Item = usize> {
+    (0..=256).chain([1_000, 4_095, 4_096, 4_097])
+}
+
+#[test]
+fn test_roundtrip_every_length() {
+    for len in end_to_end_lengths() {
+        let input = pseudo_random_bytes(len);
+        let encoded = encode(&input);
+
+        assert_eq!(encoded.len(), encoded_len(len), "encoding of {len} bytes");
+        assert_eq!(
+            decode(encoded.as_bytes()),
+            input,
+            "roundtrip of {len} bytes"
+        );
+    }
+}
+
+#[test]
+fn test_roundtrip_every_length_via_encode_into() -> core::fmt::Result {
+    for len in end_to_end_lengths() {
+        let input = pseudo_random_bytes(len);
+
+        let mut encoded = String::new();
+
+        encode_into(&input, &mut encoded)?;
+
+        assert_eq!(encoded, encode(&input), "encoding of {len} bytes");
+        assert_eq!(
+            decode(encoded.as_bytes()),
+            input,
+            "roundtrip of {len} bytes"
+        );
+    }
+
+    Ok(())
+}
+
+#[test]
+fn test_roundtrip_every_length_with_padding() {
+    for len in end_to_end_lengths() {
+        let input = pseudo_random_bytes(len);
+
+        let mut encoded = encode(&input).into_bytes();
+
+        while !encoded.len().is_multiple_of(4) {
+            encoded.push(b'=');
+        }
+
+        assert_eq!(decode(&encoded), input, "roundtrip of {len} bytes");
+    }
+}
+
+#[test]
+fn test_roundtrip_every_length_with_whitespace() {
+    for len in end_to_end_lengths() {
+        let input = pseudo_random_bytes(len);
+
+        let mut encoded = vec![b'\n'];
+
+        for (index, byte) in encode(&input).bytes().enumerate() {
+            encoded.push(byte);
+
+            if index % 5 == 4 {
+                encoded.push(b' ');
+            }
+        }
+
+        encoded.push(b'\t');
+
+        assert_eq!(decode(&encoded), input, "roundtrip of {len} bytes");
+    }
+}

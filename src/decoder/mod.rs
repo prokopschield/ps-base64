@@ -19,9 +19,10 @@ pub(crate) const fn three_fourths(size: usize) -> usize {
 /// and standard (`+`, `/`) alphabets are recognized.
 ///
 /// The output length depends only on the number of accepted characters, never
-/// on their values: every complete group of four characters yields three
-/// bytes, and a trailing group of one, two, or three characters yields one,
-/// one, or two bytes. Leftover bits in a trailing group are discarded.
+/// on their values. Every complete group of four characters yields three
+/// bytes, and a trailing group yields one byte for one or two characters, or
+/// two bytes for three characters. Leftover bits in a trailing group are
+/// discarded.
 #[must_use]
 pub fn decode(input: &[u8]) -> Vec<u8> {
     let mut output: Vec<u8> = Vec::with_capacity(align_up(three_fourths(input.len())));

@@ -8,6 +8,12 @@ license = "GPL-3.0-or-later"
 keywords = ["base64", "base64url", "decode", "encode"]
 categories = ["encoding"]
 
+[lints.clippy]
+expect_used = "warn"
+nursery = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+unwrap_used = "deny"
+
 [profile.dev]
 opt-level = 3
 

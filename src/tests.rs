@@ -475,3 +475,129 @@ fn test_roundtrip_every_length_with_whitespace() {
         assert_eq!(decode(&encoded), input, "roundtrip of {len} bytes");
     }
 }
+
+// The bytes decoding skips: ASCII whitespace and '='.
+const SKIPPED: [u8; 6] = [b' ', b'\t', b'\n', b'\x0C', b'\r', b'='];
+
+// Straightforward reference decoder: drop the skipped bytes, then decode what
+// is left four characters at a time, following the documented tail rule.
+fn reference_decode(input: &[u8]) -> Vec<u8> {
+    let accepted: Vec<u8> = input
+        .iter()
+        .copied()
+        .filter(|&byte| !byte.is_ascii_whitespace() && byte != b'=')
+        .collect();
+
+    let mut output = Vec::new();
+
+    for chunk in accepted.chunks(4) {
+        let value = |index: usize| decode_base64_char(chunk[index]);
+
+        match chunk.len() {
+            1 => output.push(value(0) << 2),
+            2 => output.push((value(0) << 2) | (value(1) >> 4)),
+            3 => output.extend_from_slice(&[
+                (value(0) << 2) | (value(1) >> 4),
+                ((value(1) & 0xf) << 4) | (value(2) >> 2),
+            ]),
+            _ => output.extend_from_slice(&[
+                (value(0) << 2) | (value(1) >> 4),
+                ((value(1) & 0xf) << 4) | (value(2) >> 2),
+                ((value(2) & 0x3) << 6) | value(3),
+            ]),
+        }
+    }
+
+    output
+}
+
+#[test]
+fn test_decode_skip_at_every_position() {
+    // A single skipped byte at every position of every encoding walks the
+    // fast-path breakpoint through all four group offsets after every
+    // possible number of complete groups.
+    for len in 0..=120 {
+        let encoded = encode(&pseudo_random_bytes(len)).into_bytes();
+
+        assert_eq!(
+            decode(&encoded),
+            reference_decode(&encoded),
+            "clean, len {len}"
+        );
+
+        for position in 0..=encoded.len() {
+            for skip in SKIPPED {
+                let mut probe = encoded.clone();
+
+                probe.insert(position, skip);
+
+                assert_eq!(
+                    decode(&probe),
+                    reference_decode(&probe),
+                    "len {len}, position {position}, skip {:?}",
+                    char::from(skip)
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn test_decode_adjacent_skips() {
+    // Two adjacent skipped bytes make the fallback resume on a boundary that
+    // is offset from the group grid by two rather than one.
+    for len in 0..=60 {
+        let encoded = encode(&pseudo_random_bytes(len)).into_bytes();
+
+        for position in 0..=encoded.len() {
+            let mut probe = encoded.clone();
+
+            probe.insert(position, b'\n');
+            probe.insert(position, b'\r');
+
+            assert_eq!(
+                decode(&probe),
+                reference_decode(&probe),
+                "len {len}, position {position}"
+            );
+        }
+    }
+}
+
+#[test]
+fn test_decode_line_wrapped_input() {
+    // MIME wraps at 76 characters and PEM at 64; both land on group offset 0,
+    // well after the fast path has been running.
+    for width in [64, 76] {
+        for len in 0..=400 {
+            let input = pseudo_random_bytes(len);
+
+            let mut wrapped = Vec::new();
+
+            for (index, byte) in encode(&input).bytes().enumerate() {
+                if index > 0 && index % width == 0 {
+                    wrapped.extend_from_slice(b"\r\n");
+                }
+
+                wrapped.push(byte);
+            }
+
+            assert_eq!(decode(&wrapped), input, "wrap {width}, len {len}");
+        }
+    }
+}
+
+#[test]
+fn test_decode_only_skipped_bytes() {
+    for len in 0..=32 {
+        for skip in SKIPPED {
+            let probe = vec![skip; len];
+
+            assert!(
+                decode(&probe).is_empty(),
+                "len {len}, skip {:?}",
+                char::from(skip)
+            );
+        }
+    }
+}

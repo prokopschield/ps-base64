@@ -70,6 +70,10 @@ fn test_three_fourths() {
     assert_eq!(three_fourths(10), 8);
     assert_eq!(three_fourths(11), 9);
     assert_eq!(three_fourths(12), 9);
+
+    // The naive `(size * 3).div_ceil(4)` overflows here. `usize::MAX` is
+    // `4q + 3` with `q = usize::MAX / 4`, so the result is `3q + 3`.
+    assert_eq!(three_fourths(usize::MAX), usize::MAX / 4 * 3 + 3);
 }
 
 #[test]

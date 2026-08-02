@@ -9,7 +9,8 @@ pub(crate) const fn align_up(size: usize) -> usize {
 
 #[inline]
 pub(crate) const fn three_fourths(size: usize) -> usize {
-    (size * 3).div_ceil(4)
+    // Equal to `(size * 3).div_ceil(4)` for every `size`, but cannot overflow.
+    size - size / 4
 }
 
 /// Sentinel marking a byte that decoding skips. No 6-bit value has this bit

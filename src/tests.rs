@@ -627,3 +627,46 @@ fn test_decode_only_skipped_bytes() {
         }
     }
 }
+
+#[test]
+fn test_decode_standard_and_legacy_alphabets() {
+    // `+` and `/` come from the standard alphabet, and `.`, `~`, and `,` from
+    // data this crate emitted before switching to base64url.
+    for symbol in [b'.', b'+', b'-', b'~'] {
+        assert_eq!(decode_base64_char(symbol), 62, "{:?}", char::from(symbol));
+    }
+
+    for symbol in [b',', b'/', b'_'] {
+        assert_eq!(decode_base64_char(symbol), 63, "{:?}", char::from(symbol));
+    }
+
+    assert_eq!(decode(b"____"), [0xff, 0xff, 0xff]);
+    assert_eq!(decode(b"++++"), decode(b"----"));
+    assert_eq!(decode(b"..~~"), decode(b"----"));
+    assert_eq!(decode(b",,//"), decode(b"____"));
+}
+
+#[test]
+fn test_decode_standard_alphabet_roundtrip() {
+    for len in [0usize, 1, 2, 57, 96, 128] {
+        // The 0xff tail guarantees the encoding contains `_`.
+        let mut input = pseudo_random_bytes(len);
+
+        input.extend_from_slice(&[0xff, 0xff, 0xff]);
+
+        let mut encoded: Vec<u8> = encode(&input)
+            .bytes()
+            .map(|byte| match byte {
+                b'-' => b'+',
+                b'_' => b'/',
+                byte => byte,
+            })
+            .collect();
+
+        while !encoded.len().is_multiple_of(4) {
+            encoded.push(b'=');
+        }
+
+        assert_eq!(decode(&encoded), input, "{len} bytes");
+    }
+}

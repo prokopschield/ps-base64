@@ -1,6 +1,6 @@
 [package]
 name = "ps-base64"
-version = "0.1.0-6"
+version = "0.1.0-7"
 edition = "2021"
 rust-version = "1.87"
 description = "Base64 encode/decode"

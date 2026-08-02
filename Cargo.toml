@@ -2,6 +2,7 @@
 name = "ps-base64"
 version = "0.1.0-6"
 edition = "2021"
+rust-version = "1.87"
 description = "Base64 encode/decode"
 repository = "https://github.com/prokopschield/ps-base64"
 license = "GPL-3.0-or-later"

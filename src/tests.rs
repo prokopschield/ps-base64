@@ -309,6 +309,32 @@ fn test_sized_decode_all_byte_values() {
 }
 
 #[test]
+fn test_sized_decode_discards_padding_bits() {
+    // Trailing bits that a canonical encoder would leave zero are discarded,
+    // matching `decode`, so they never reach the output buffer.
+    assert_bytes_eq(&[102, 0], &sized_decode::<2>(b"Zh"));
+    assert_bytes_eq(&[102, 107, 0], &sized_decode::<3>(b"Zmv"));
+}
+
+#[test]
+fn test_sized_decode_matches_decode() {
+    // `sized_decode::<S>` equals `decode` truncated to `S` bytes and
+    // right-padded with zeros, for every prefix of an encoding.
+    let encoded = encode(&pseudo_random_bytes(96));
+
+    for len in 0..=encoded.len() {
+        let prefix = &encoded.as_bytes()[..len];
+
+        let mut expected = decode(prefix);
+
+        expected.truncate(64);
+        expected.resize(64, 0);
+
+        assert_eq!(as_vec(sized_decode::<64>(prefix)), expected, "{len}");
+    }
+}
+
+#[test]
 fn test_encode_basic() {
     // base64url, unpadded (RFC 4648 §5 vectors without '=' padding)
     assert_eq!(encode(b""), "");

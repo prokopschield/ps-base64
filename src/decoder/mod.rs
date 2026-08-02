@@ -150,6 +150,8 @@ pub fn decode(input: &[u8]) -> Vec<u8> {
 ///
 /// Decoding stops once `S` bytes are produced or the input is exhausted; any
 /// remaining input is ignored, and any unfilled trailing bytes are left zero.
+/// Leftover bits in a trailing group are discarded, so the result equals
+/// [`decode`]'s output truncated to `S` bytes and right-padded with zeros.
 /// Leniency matches [`decode`].
 #[must_use]
 pub fn sized_decode<const S: usize>(input: &[u8]) -> [u8; S] {
@@ -189,9 +191,7 @@ pub fn sized_decode<const S: usize>(input: &[u8]) -> [u8; S] {
         if let Some(b) = iterator.next() {
             value |= u32::from(DECODE_MAP[usize::from(b)]) << 6;
         } else {
-            let bytes = value.to_be_bytes();
-            output[decoded_bytes] = bytes[1];
-            output[decoded_bytes + 1] = bytes[2];
+            output[decoded_bytes] = value.to_be_bytes()[1];
             break;
         }
 
@@ -208,7 +208,6 @@ pub fn sized_decode<const S: usize>(input: &[u8]) -> [u8; S] {
             let bytes = value.to_be_bytes();
             output[decoded_bytes] = bytes[1];
             output[decoded_bytes + 1] = bytes[2];
-            output[decoded_bytes + 2] = bytes[3];
             break;
         }
 

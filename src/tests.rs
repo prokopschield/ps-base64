@@ -503,7 +503,7 @@ fn test_roundtrip_every_length_with_whitespace() {
 }
 
 // The bytes decoding skips: ASCII whitespace and '='.
-const SKIPPED: [u8; 6] = [b' ', b'\t', b'\n', b'\x0C', b'\r', b'='];
+const SKIPPED: [u8; 6] = *b" \t\n\x0C\r=";
 
 // Straightforward reference decoder: drop the skipped bytes, then decode what
 // is left four characters at a time, following the documented tail rule.
@@ -632,11 +632,11 @@ fn test_decode_only_skipped_bytes() {
 fn test_decode_standard_and_legacy_alphabets() {
     // `+` and `/` come from the standard alphabet, and `.`, `~`, and `,` from
     // data this crate emitted before switching to base64url.
-    for symbol in [b'.', b'+', b'-', b'~'] {
+    for symbol in *b".+-~" {
         assert_eq!(decode_base64_char(symbol), 62, "{:?}", char::from(symbol));
     }
 
-    for symbol in [b',', b'/', b'_'] {
+    for symbol in *b",/_" {
         assert_eq!(decode_base64_char(symbol), 63, "{:?}", char::from(symbol));
     }
 

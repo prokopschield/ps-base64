@@ -378,6 +378,24 @@ fn test_encode_into_matches_encode() -> core::fmt::Result {
 }
 
 #[test]
+fn test_display_matches_encode() {
+    for len in 0u8..=64 {
+        let input: Vec<u8> = (0..len).collect();
+
+        assert_eq!(display(&input).to_string(), encode(&input));
+    }
+}
+
+#[test]
+fn test_display_embeds_in_format_strings() {
+    assert_eq!(format!("<{}>", display(b"foobar")), "<Zm9vYmFy>");
+    assert_eq!(
+        format!("{}{}", display(b"foo"), display(b"bar")),
+        "Zm9vYmFy"
+    );
+}
+
+#[test]
 fn test_sized_encode_exact() {
     assert_bytes_eq(b"Zg", &sized_encode::<2>(b"f"));
     assert_bytes_eq(b"Zm8", &sized_encode::<3>(b"fo"));

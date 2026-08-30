@@ -76,6 +76,25 @@ pub fn encode(input: &[u8]) -> String {
     unsafe { String::from_utf8_unchecked(output) }
 }
 
+/// Returns an adapter that encodes `input` as unpadded base64url when
+/// formatted with [`core::fmt::Display`].
+///
+/// This lets an encoding be embedded directly in `format_args!`-style macros,
+/// streaming into the formatter via [`encode_into`] without an intermediate
+/// allocation.
+#[must_use]
+pub fn display(input: &[u8]) -> impl core::fmt::Display + '_ {
+    struct Adapter<'a>(&'a [u8]);
+
+    impl core::fmt::Display for Adapter<'_> {
+        fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+            encode_into(self.0, formatter)
+        }
+    }
+
+    Adapter(input)
+}
+
 /// Encodes `input` and writes directly into a [`core::fmt::Write`].
 ///
 /// # Errors

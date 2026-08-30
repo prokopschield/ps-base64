@@ -19,6 +19,7 @@ pub use encoder::*;
 
 pub mod base64 {
     pub use crate::decoder::decode;
+    pub use crate::decoder::decode_into;
     pub use crate::decoder::sized_decode;
     pub use crate::encoder::display;
     pub use crate::encoder::encode;

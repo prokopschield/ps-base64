@@ -146,16 +146,16 @@ pub fn decode(input: &[u8]) -> Vec<u8> {
     output
 }
 
-/// Decodes base64url `input` into a fixed-size `[u8; S]` buffer.
+/// Decodes base64url `input` into the caller-provided `output` buffer and
+/// returns the number of bytes written.
 ///
-/// Decoding stops once `S` bytes are produced or the input is exhausted; any
-/// remaining input is ignored, and any unfilled trailing bytes are left zero.
-/// Leftover bits in a trailing group are discarded, so the result equals
-/// [`decode`]'s output truncated to `S` bytes and right-padded with zeros.
+/// Decoding stops once `output` is full or the input is exhausted; any
+/// remaining input is ignored, and any bytes past the written prefix are left
+/// untouched. Leftover bits in a trailing group are discarded, so the written
+/// prefix equals [`decode`]'s output truncated to `output.len()` bytes.
 /// Leniency matches [`decode`].
-#[must_use]
-pub fn sized_decode<const S: usize>(input: &[u8]) -> [u8; S] {
-    let mut output = [0u8; S];
+#[inline]
+pub fn decode_into(input: &[u8], output: &mut [u8]) -> usize {
     let mut iterator = input
         .iter()
         .copied()
@@ -165,7 +165,7 @@ pub fn sized_decode<const S: usize>(input: &[u8]) -> [u8; S] {
     loop {
         let mut value = 0;
 
-        if decoded_bytes >= S {
+        if decoded_bytes >= output.len() {
             break;
         }
 
@@ -179,12 +179,14 @@ pub fn sized_decode<const S: usize>(input: &[u8]) -> [u8; S] {
             value |= u32::from(DECODE_MAP[usize::from(b)]) << 12;
         } else {
             output[decoded_bytes] = value.to_be_bytes()[1];
+            decoded_bytes += 1;
             break;
         }
 
-        if decoded_bytes + 1 >= S {
+        if decoded_bytes + 1 >= output.len() {
             let bytes = value.to_be_bytes();
             output[decoded_bytes] = bytes[1];
+            decoded_bytes += 1;
             break;
         }
 
@@ -192,13 +194,15 @@ pub fn sized_decode<const S: usize>(input: &[u8]) -> [u8; S] {
             value |= u32::from(DECODE_MAP[usize::from(b)]) << 6;
         } else {
             output[decoded_bytes] = value.to_be_bytes()[1];
+            decoded_bytes += 1;
             break;
         }
 
-        if decoded_bytes + 2 >= S {
+        if decoded_bytes + 2 >= output.len() {
             let bytes = value.to_be_bytes();
             output[decoded_bytes] = bytes[1];
             output[decoded_bytes + 1] = bytes[2];
+            decoded_bytes += 2;
             break;
         }
 
@@ -208,6 +212,7 @@ pub fn sized_decode<const S: usize>(input: &[u8]) -> [u8; S] {
             let bytes = value.to_be_bytes();
             output[decoded_bytes] = bytes[1];
             output[decoded_bytes + 1] = bytes[2];
+            decoded_bytes += 2;
             break;
         }
 
@@ -217,5 +222,22 @@ pub fn sized_decode<const S: usize>(input: &[u8]) -> [u8; S] {
 
         decoded_bytes += 3;
     }
+
+    decoded_bytes
+}
+
+/// Decodes base64url `input` into a fixed-size `[u8; S]` buffer.
+///
+/// Decoding stops once `S` bytes are produced or the input is exhausted; any
+/// remaining input is ignored, and any unfilled trailing bytes are left zero.
+/// Leftover bits in a trailing group are discarded, so the result equals
+/// [`decode`]'s output truncated to `S` bytes and right-padded with zeros.
+/// Leniency matches [`decode`].
+#[must_use]
+pub fn sized_decode<const S: usize>(input: &[u8]) -> [u8; S] {
+    let mut output = [0u8; S];
+
+    decode_into(input, &mut output);
+
     output
 }

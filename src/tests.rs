@@ -335,6 +335,59 @@ fn test_sized_decode_matches_decode() {
 }
 
 #[test]
+fn test_decode_into_empty() {
+    let mut output = [0u8; 4];
+
+    assert_eq!(decode_into(b"", &mut output), 0);
+    assert_eq!(decode_into(b"Zm9v", &mut []), 0);
+}
+
+#[test]
+fn test_decode_into_basic() {
+    let mut output = [0u8; 6];
+
+    assert_eq!(decode_into(b"Zm9vYmFy", &mut output), 6);
+    assert_bytes_eq(b"foobar", &output);
+}
+
+#[test]
+fn test_decode_into_truncated_output() {
+    let mut output = [0u8; 3];
+
+    assert_eq!(decode_into(b"Zm9vYmFy", &mut output), 3);
+    assert_bytes_eq(b"foo", &output);
+}
+
+#[test]
+fn test_decode_into_leaves_tail_untouched() {
+    let mut output = [0xaa; 6];
+
+    assert_eq!(decode_into(b"Zm9v", &mut output), 3);
+    assert_bytes_eq(b"foo\xaa\xaa\xaa", &output);
+}
+
+#[test]
+fn test_decode_into_matches_decode() {
+    // The written prefix equals `decode`'s output truncated to the buffer
+    // length, for every prefix of an encoding and every buffer size.
+    let encoded = encode(&pseudo_random_bytes(24));
+
+    for len in 0..=encoded.len() {
+        let prefix = &encoded.as_bytes()[..len];
+        let expected = decode(prefix);
+
+        for size in 0..=20 {
+            let mut output = vec![0u8; size];
+            let written = decode_into(prefix, &mut output);
+
+            assert_eq!(written, expected.len().min(size), "len {len}, size {size}");
+            assert_bytes_eq(&expected[..written], &output[..written]);
+            assert!(output[written..].iter().all(|&byte| byte == 0));
+        }
+    }
+}
+
+#[test]
 fn test_encode_basic() {
     // base64url, unpadded (RFC 4648 §5 vectors without '=' padding)
     assert_eq!(encode(b""), "");

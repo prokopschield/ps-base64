@@ -1,6 +1,22 @@
 /// The base64url output alphabet, indexed by 6-bit value.
 pub const ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 
+/// Returns the length of the unpadded base64url encoding of `len` input
+/// bytes.
+///
+/// Every complete group of three bytes yields four characters, and a trailing
+/// byte yields two characters, or three for two bytes.
+#[inline]
+#[must_use]
+pub const fn encoded_len(len: usize) -> usize {
+    len / 3 * 4
+        + match len % 3 {
+            0 => 0,
+            1 => 2,
+            _ => 3,
+        }
+}
+
 /// Encodes `input` as base64url into a fixed-size `[u8; S]` buffer.
 ///
 /// The buffer is right-padded with `=` when the encoding is shorter than `S`,

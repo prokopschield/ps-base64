@@ -13,6 +13,22 @@ pub(crate) const fn three_fourths(size: usize) -> usize {
     size - size / 4
 }
 
+/// Returns the number of bytes [`decode`] produces for `len` input
+/// characters, none of which are skipped (ASCII whitespace or `=`).
+///
+/// Every complete group of four characters yields three bytes, and a trailing
+/// group yields one byte for one or two characters, or two bytes for three.
+#[inline]
+#[must_use]
+pub const fn decoded_len(len: usize) -> usize {
+    len / 4 * 3
+        + match len % 4 {
+            0 => 0,
+            1 | 2 => 1,
+            _ => 2,
+        }
+}
+
 /// Sentinel marking a byte that decoding skips. No 6-bit value has this bit
 /// set, so it cannot collide with a decoded character.
 const SKIP: u8 = 0x80;

@@ -486,16 +486,6 @@ fn pseudo_random_bytes(len: usize) -> Vec<u8> {
         .collect()
 }
 
-// Length of the unpadded base64url encoding of `len` bytes.
-fn encoded_len(len: usize) -> usize {
-    len / 3 * 4
-        + match len % 3 {
-            0 => 0,
-            1 => 2,
-            _ => 3,
-        }
-}
-
 // Every input length from 0 to 256, which covers all three residues modulo 3
 // and every position within a four-character group, plus a few larger sizes.
 fn end_to_end_lengths() -> impl Iterator<Item = usize> {
@@ -514,6 +504,26 @@ fn test_roundtrip_every_length() {
             input,
             "roundtrip of {len} bytes"
         );
+    }
+}
+
+#[test]
+fn test_decoded_len_matches_decode() {
+    let encoded = encode(&pseudo_random_bytes(3_000));
+
+    for len in 0..=encoded.len() {
+        assert_eq!(
+            decoded_len(len),
+            decode(&encoded.as_bytes()[..len]).len(),
+            "{len}"
+        );
+    }
+}
+
+#[test]
+fn test_decoded_len_inverts_encoded_len() {
+    for len in 0..=1_000 {
+        assert_eq!(decoded_len(encoded_len(len)), len, "{len}");
     }
 }
 
